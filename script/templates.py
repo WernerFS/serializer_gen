@@ -182,7 +182,7 @@ module st_encoder
                     nextstate = pkt_start;
                 else begin
                     if (o_pkt_intf.ready && {first_field}_avail)
-                        nextstate = {first_field};
+                        nextstate = {first_state};
                     else begin
                         nextstate = idle;
                         pkt_valid = 0;

@@ -1,6 +1,0 @@
-<testsuites name="results">
-  <testsuite name="all" package="all">
-    <property name="random_seed" value="1707860578" />
-    <testcase name="ifc_test" classname="test_encoder" file="/home/xikhari/Downloads/exercise_1.2/exercise/test_encoder.py" lineno="23" time="0.004537105560302734" sim_time_ns="160.001" ratio_time="35264.99392033631" />
-  </testsuite>
-</testsuites>
