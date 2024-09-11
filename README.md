@@ -19,3 +19,24 @@ The output bus has data, ready, valid, and lenght ports.
 The lenght port is used to indicated the valid bytes in the last word.
 Additionally, the serializer will try to minimize the latency by scheduling all transactions as soon as possible.
 
+The folder contains the following files:
+
+exercise/
+├── example/
+│   ├── example_pkg_udp_msg1.sv
+│   │       # Example package with fields_t struct
+│   │       # for udp_msg1.
+│   ├── example_spec.yaml
+│   │       # Example message spec. 
+│   └── example_wave_msg3.png
+├── README.txt
+├── script/
+├── src/
+│   ├── st_encoder.sv
+│   │       # Module port declaration
+│   └── st_intf.sv
+│           # ready/valid and packet interface declaration
+└── tb/
+
+
+All rights reserved (C) 2024. Werner Florian

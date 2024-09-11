@@ -26,59 +26,66 @@ def choose_msg_type(specs: dict):
     return specs[msg_types[selection]], msg_types[selection] \
         if (selection < len(specs) and selection >= 0) else choose_msg_type(specs)
 
+## solve mixed states, number of states cannot!!! exceed number of words in pkt
+## in a loop add words till 4, then name state according to original signals, should tie all validates 
+## make a list (field_name, w_size)
+
 def generate_interface(specs: dict, msg_name: str):
+    name_size = []
     fields = ''
     data = []
-    states = ['idle']
+    states = ['idle', 'rst']
     tsize = 0
-    min_latency = 0
+    min_latency = 1
     with open(msg_name + '.sv', 'w', encoding = 'utf-8') as outf:
         outf.write(interface.header)
         msg_types = interface.msg_type.format(name = msg_name, index = specs['msg_type'])
         outf.write(interface.types_enum.format(types = msg_types))
-        for i, field_specs in enumerate(specs['fields']):
+        for field_specs in specs['fields']:
             name = list(field_specs.keys())[0]
             s_words = ceil(field_specs[name]['size'] / 4)
             s_bytes = field_specs[name]['size']
             fields += interface.fields.format(name = name, size = s_bytes - 1)
             data.append(interface.data_field.format(name = name, size = s_bytes - 1))
-            for w in range(s_words):
-                states.append(interface.state.format(name = name, n = w))
-            if (field_specs[name]['avail_cycle'] - tsize) > min_latency:
-                min_latency = field_specs[name]['avail_cycle'] + 1 - tsize
+            for i in range(s_words):
+                states.append(interface.state.format(name = name, n = i))
+
+            if field_specs[name]['avail_cycle'] > min_latency:
+                min_latency += 1
+            min_latency += s_wordsz
             tsize += s_bytes
+            name_size.extend([name] * s_words)
         valid_states = ',\n\t\t'.join(states)
         data_fields = '\n\t\t'.join(data)
         outf.write(interface.states.format(valid_states = valid_states))
         outf.write(interface.union.format(tsize = tsize, data_fields = data_fields))
         outf.write(interface.type_struct.format(fields = fields))
-    return specs['fields'], tsize, states, min_latency
-
-def generate_encoder(specs, name, states, min_latency, msg_name):
+        return name_size, tsize, states[2:], min_latency
+    
+# consume (field_name, w_size) for avails in each state
+def generate_encoder(name_size, tsize, states, min_latency, msg_name):
+    fsm = encoder(tsize, states)
     avail_fields = []
-    avail_fields_reset = [] 
+    avail_fields_reset = []
     avail_fields_update = []
-    field_states = []
     with open(name + '.sv', 'w', encoding = 'utf-8') as outf:
-        outf.write(encoder.header)
-        for i, field_specs in enumerate(specs['fields']):
-            name = list(field_specs.keys())[0]
-            s_words = ceil(field_specs[name]['size'] / 4)
-            avail_fields.append(encoder.field_avail.format(field = name))
-            avail_fields_reset.append(encoder.avail_reset.format(field = name))
-            avail_fields_update.append(encoder.update_fields.format(field = name))
-        pkt_start = encoder.pkt_start_s.format(pkt_ready = min_latency, first_field = specs['fields'][0]['name'], state = states[0])
-        for i, s in enumerate(states[:-1]):
-            if i == 0:
-                first_field = encoder.first_field_s.format(first_field = s, next_field, field_bytes, next_state)
-            else:
-                
-        outf.write(encoder.internals.format(avail_fields))
-        outf.write(encoder.initials.format(msg_name))
-        outf.write(encoder.fsm_start)
-        outf.write(encoder.update_avails.format(avail_fields_reset = avail_fields_reset, update_fields = avail_fields_update))
-        outf.write(encoder.fsm_outputs.format(pkt_start_S = first_state, first_field_s = first_field, field_s = 'b', last_field ='c'))
+        outf.write(fsm.header)
+        for name, _ in name_size:
+            avail_fields.append(fsm.field_avail.format(field = name))
+            avail_fields_reset.append(fsm.avail_reset.format(field = name))
+            avail_fields_update.append(fsm.update_fields.format(field = name))
+        outf.write(fsm.internals.format(avail_fields))
+        outf.write(fsm.initials.format(msg_name))
+        outf.write(fsm.fsm_start)
+        outf.write(fsm.update_avails.format(avail_fields_reset = avail_fields_reset, update_fields = avail_fields_update))
 
+        # get states
+        outf.write(fsm.pkt_start_s.format(pkt_ready = min_latency, first_field = states[0]))
+        outf.write(fsm.first_field_s.format(first_field = states.pop(0), next_field = states[0].split("_")[0], field_bytes = , next_state = states[0]))
+        last_state = fsm.last_field_word_s.format(pkt_ready = min_latency, first_field = states.pop())
+        for i, s in enumerate(states):
+            # add states
+            pass
 
 
 def main():

@@ -49,6 +49,18 @@ Little = 0
 Big = 1
 
 class encoder():
+    # default states (idle, reset) are fixed 
+    def __init__(self, tsize, states):  
+        field_byte = 'fields_bytes.bytes[{n}]'
+        self.field_bytes = [field_byte.format(i) for i in range(tsize, -1, -1)]
+        self.states = states
+
+    def get_field_bytes(self):
+        fields = self.field_bytes[:4]
+        self.field_bytes = self.field_bytes[4:]
+        pad = ["8h00"] * (4 - len(fields))
+        return ','.join(pad + fields)
+    
 
     '''
     Provides the templates for the encoder.
@@ -182,7 +194,7 @@ module st_encoder
                     nextstate = pkt_start;
                 else begin
                     if (o_pkt_intf.ready && {first_field}_avail)
-                        nextstate = {first_state};
+                        nextstate = {first_field};
                     else begin
                         nextstate = idle;
                         pkt_valid = 0;
@@ -190,10 +202,6 @@ module st_encoder
                 end
             end
 '''
-
-    _field_byte = 'fields_bytes.bytes[{n}]'
-    def field_bytes(self, n):
-        return ','.join([self._field_byte.format(i) for i in range(n, 0)])
 
     first_field_s = '''
             {first_field}:
